@@ -1,5 +1,7 @@
 package objsets
 
+import java.util.NoSuchElementException
+
 import TweetReader._
 
 /**
@@ -34,6 +36,8 @@ class Tweet(val user: String, val text: String, val retweets: Int) {
  */
 abstract class TweetSet {
 
+  def isEmpty: Boolean
+
   /**
    * This method takes a predicate and returns a subset of all the elements
    * in the original set for which the predicate is true.
@@ -67,7 +71,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-    def mostRetweeted: Tweet = ???
+    def mostRetweeted: Tweet
   
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -78,7 +82,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-    def descendingByRetweet: TweetList = ???
+    def descendingByRetweet: TweetList
   
   /**
    * The following methods are already implemented
@@ -109,9 +113,16 @@ abstract class TweetSet {
 }
 
 class Empty extends TweetSet {
+
+  def isEmpty = true
+
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
   def union(other: TweetSet):TweetSet = other
+
+  def mostRetweeted: Tweet = throw new NoSuchElementException
+
+  def descendingByRetweet: TweetList = Nil
   /**
    * The following methods are already implemented
    */
@@ -127,13 +138,30 @@ class Empty extends TweetSet {
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
-    def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
-      def newAcc = if (p(elem)) acc.incl(elem) else acc
-      right.filterAcc(p, left.filterAcc(p, newAcc))
-    }
+  def isEmpty = false
+
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
+    def newAcc = if (p(elem)) acc.incl(elem) else acc
+    right.filterAcc(p, left.filterAcc(p, newAcc))
+  }
 
   def union(other: TweetSet):TweetSet = {
     ((left union right) union other) incl elem
+  }
+
+  def mostRetweeted: Tweet = {
+    if (!left.isEmpty && !right.isEmpty) higherRetweets(elem, higherRetweets(left.mostRetweeted, right.mostRetweeted))
+    else if (!left.isEmpty) higherRetweets(elem, left.mostRetweeted)
+    else if (!right.isEmpty) higherRetweets(elem, right.mostRetweeted)
+    else elem
+  }
+
+  def higherRetweets(a: Tweet, b: Tweet): Tweet = {
+    if (a.retweets > b.retweets) a else b
+  }
+
+  def descendingByRetweet: TweetList = {
+    new Cons(mostRetweeted, remove(mostRetweeted).descendingByRetweet)
   }
     
   /**
