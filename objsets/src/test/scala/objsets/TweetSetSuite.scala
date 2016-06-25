@@ -78,4 +78,8 @@ class TweetSetSuite extends FunSuite {
     }
   }
 
+  test("GoogleVsApple") {
+    GoogleVsApple.trending foreach println
+  }
+
   }
